@@ -19,3 +19,17 @@ export async function removeFavorite(userId: string, productId: string) {
   if (error) throw error;
   return data;
 }
+
+export async function removeFavorites(userId: string, productIds: string[]) {
+  if (productIds.length === 0) return [];
+  
+  const { data, error } = await supabase
+    .from("favorites")
+    .delete()
+    .eq("user_id", userId)
+    .in("product_id", productIds)
+    .select();
+    
+  if (error) throw error;
+  return data;
+}

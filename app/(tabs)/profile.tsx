@@ -7,13 +7,23 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { getProfile, uploadAvatar } from "../../src/lib/profileService";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router"; // Added useRouter import
+import { useState } from "react"; // Added useState import
 
 export default function ProfileScreen() {
-  const { signOut, user, isAuthenticated, loading } = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user, signOut, isAuthenticated } = useAuth();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Show sign-in prompt if not authenticated
   if (!isAuthenticated) {
@@ -48,6 +58,47 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
   }
+
+  // Fetch avatar profile
+  const { data: profile, refetch: refetchProfile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: () => getProfile(user!.id),
+    enabled: !!user?.id,
+  });
+
+  const handlePickImage = async () => {
+    if (!user) return;
+    
+    // Ask for permissions
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (permissionResult.granted === false) {
+      alert("Permission to access gallery is required!");
+      return;
+    }
+
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (pickerResult.canceled) return;
+
+    const uri = pickerResult.assets[0].uri;
+    
+    setUploadingAvatar(true);
+    try {
+      await uploadAvatar(user.id, uri);
+      await refetchProfile();
+    } catch (error) {
+      console.error("Failed to upload avatar:", error);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSignOut = async (): Promise<void> => {
     // For web, Alert.alert doesn't work well, so use window.confirm
@@ -95,13 +146,33 @@ export default function ProfileScreen() {
       >
         {/* Profile Header */}
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={48} color="#3B82F6" />
+          <TouchableOpacity 
+            style={styles.avatarContainer} 
+            onPress={handlePickImage}
+            disabled={uploadingAvatar}
+          >
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person-outline" size={40} color="#9CA3AF" />
+            )}
+            
+            {uploadingAvatar && (
+              <View style={styles.avatarLoadingOverlay}>
+                <ActivityIndicator size="small" color="#FFF" />
+              </View>
+            )}
+            
+            {!uploadingAvatar && (
+              <View style={styles.editAvatarBadge}>
+                <Ionicons name="camera" size={12} color="#FFF" />
+              </View>
+            )}
+          </TouchableOpacity>
+          <View style={styles.userInfo}>
+            <Text style={styles.name}>{user?.email?.split("@")[0] || "User"}</Text>
+            <Text style={styles.email}>{user?.email || "user@example.com"}</Text>
           </View>
-          <Text style={styles.name}>
-            {user?.email?.split("@")[0] || "User"}
-          </Text>
-          <Text style={styles.email}>{user?.email || "user@example.com"}</Text>
         </View>
 
         {/* Menu Items */}
@@ -171,6 +242,7 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   header: {
+    flexDirection: "row", // Changed to row
     alignItems: "center",
     paddingVertical: 24,
     backgroundColor: "#FFFFFF",
@@ -180,17 +252,47 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    paddingHorizontal: 20, // Added horizontal padding
   },
   avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80, // Changed width
+    height: 80, // Changed height
+    borderRadius: 40, // Changed borderRadius
     backgroundColor: "#EEF2FF",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginRight: 16, // Added margin
     borderWidth: 3,
     borderColor: "#3B82F6",
+    position: "relative", // Added position
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  avatarLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editAvatarBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#3B82F6",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFF",
+  },
+  userInfo: {
+    flex: 1,
   },
   name: {
     fontSize: 24,
@@ -222,12 +324,12 @@ const styles = StyleSheet.create({
   },
   menuIconContainer: {
     width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F9FAFB",
+    height: 40, // Changed height back to 40
+    borderRadius: 20, // Changed borderRadius back to 20
+    backgroundColor: "#F9FAFB", // Changed color back to F9FAFB
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: 12, // Changed margin back to 12
   },
   menuText: {
     flex: 1,

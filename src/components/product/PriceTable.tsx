@@ -21,7 +21,7 @@ export function PriceTable({ prices }: Props) {
           key={p.id}
           style={[styles.row, p.id === best.id ? styles.bestRow : null]}
         >
-          <Text style={styles.store}>{p.storeId}</Text>
+          <Text style={styles.store}>{p.storeName ?? p.storeId}</Text>
           <Text style={styles.price}>€{p.price.toFixed(2)}</Text>
         </View>
       ))}
