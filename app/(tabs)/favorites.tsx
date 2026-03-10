@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
-  SafeAreaView,
   StyleSheet,
   FlatList,
   View,
   Text,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../src/lib/supabase";
 import { ProductCard } from "../../src/components/product/ProductCard";
@@ -19,6 +20,7 @@ import { useAuth } from "../../src/context/AuthContext";
 export default function FavoritesScreen() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Show sign-in prompt if not authenticated
   if (!isAuthenticated) {
@@ -53,6 +55,7 @@ export default function FavoritesScreen() {
       </SafeAreaView>
     );
   }
+
   const { data, isLoading } = useQuery<Product[], Error, Product[]>({
     queryKey: ["favorites"],
     queryFn: async () => {
@@ -78,6 +81,12 @@ export default function FavoritesScreen() {
       return (res.data ?? []) as Product[];
     },
   });
+
+  const filteredFavorites = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!data || !normalizedQuery) return data ?? [];
+    return data.filter((p) => p.name.toLowerCase().includes(normalizedQuery));
+  }, [data, searchQuery]);
 
   if (isLoading) {
     return (
@@ -106,10 +115,57 @@ export default function FavoritesScreen() {
     );
   }
 
+  if (filteredFavorites.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.searchRow}>
+          <View style={styles.searchInputContainer}>
+            <TextInput
+              placeholder="Search items"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+          </View>
+          <TouchableOpacity style={styles.searchButton} activeOpacity={0.85}>
+            <Ionicons name="search" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyTitle}>No matches</Text>
+          <Text style={styles.emptySubtitle}>
+            Try a different search term
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            placeholder="Search items"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchInput}
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+          />
+        </View>
+        <TouchableOpacity style={styles.searchButton} activeOpacity={0.85}>
+          <Ionicons name="search" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
       <FlatList<Product>
-        data={data}
+        data={filteredFavorites}
         renderItem={({ item }) => (
           <ProductCard
             product={item}
@@ -128,6 +184,44 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#F9FAFB",
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    margin: 12,
+  },
+  searchInputContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  searchInput: {
+    fontSize: 16,
+    color: "#0F172A",
+    paddingVertical: 4,
+  },
+  searchButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F97316",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#F97316",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   centerContainer: {
     flex: 1,

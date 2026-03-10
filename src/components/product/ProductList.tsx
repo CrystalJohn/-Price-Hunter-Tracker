@@ -1,10 +1,18 @@
 import React, { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, View, TextInput } from "react-native";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { ProductCard } from "./ProductCard";
 import type { Product, ProductPrice } from "../../types/domain";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 async function fetchProducts() {
   const { data: products, error: pErr } = await supabase
@@ -53,7 +61,7 @@ export function ProductList() {
     queryKey: ["products-with-prices"],
     queryFn: fetchProducts,
   });
-  const [brandFilter, setBrandFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const items = useMemo(() => {
     if (!data) return [];
@@ -71,9 +79,10 @@ export function ProductList() {
       lowestPrice: priceMap.get(prod.id) ?? null,
     }));
 
-    const filtered = brandFilter
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filtered = normalizedQuery
       ? list.filter((l) =>
-          l.product.brand.toLowerCase().includes(brandFilter.toLowerCase()),
+          l.product.name.toLowerCase().includes(normalizedQuery),
         )
       : list;
 
@@ -86,24 +95,35 @@ export function ProductList() {
     });
 
     return filtered;
-  }, [data, brandFilter]);
+  }, [data, searchQuery]);
 
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <Text>Loading products…</Text>
+        <Text>Loading products...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <TextInput
-        placeholder="Filter by brand"
-        value={brandFilter}
-        onChangeText={setBrandFilter}
-        style={styles.input}
-      />
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            placeholder="Search items"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchInput}
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+          />
+        </View>
+        <TouchableOpacity style={styles.searchButton} activeOpacity={0.85}>
+          <Ionicons name="search" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={items}
         renderItem={({ item }) => (
@@ -124,5 +144,42 @@ export function ProductList() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FAFC" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  input: { margin: 12, padding: 10, borderRadius: 8, backgroundColor: "#fff" },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    margin: 12,
+  },
+  searchInputContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  searchInput: {
+    fontSize: 16,
+    color: "#0F172A",
+    paddingVertical: 4,
+  },
+  searchButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F97316",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#F97316",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
 });
