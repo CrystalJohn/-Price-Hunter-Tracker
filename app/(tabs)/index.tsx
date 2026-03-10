@@ -4,7 +4,7 @@ import { ProductList } from "../../src/components/product/ProductList";
 
 export default function HomeScreen() {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ProductList />
     </SafeAreaView>
   );

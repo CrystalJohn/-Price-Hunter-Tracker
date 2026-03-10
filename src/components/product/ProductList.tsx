@@ -6,12 +6,13 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { ProductCard } from "./ProductCard";
 import type { Product, ProductPrice } from "../../types/domain";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 async function fetchProducts() {
@@ -62,6 +63,24 @@ export function ProductList() {
     queryFn: fetchProducts,
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setSelectedBrand(null);
+      setSearchQuery("");
+    }, [])
+  );
+
+  const brands = useMemo(() => {
+    if (!data?.products?.length) return [] as string[];
+    const unique = new Set(
+      data.products
+        .map((p) => (p.brand ?? "").trim())
+        .filter((b) => b.length > 0),
+    );
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [data]);
 
   const items = useMemo(() => {
     if (!data) return [];
@@ -80,11 +99,19 @@ export function ProductList() {
     }));
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const filtered = normalizedQuery
-      ? list.filter((l) =>
-          l.product.name.toLowerCase().includes(normalizedQuery),
-        )
-      : list;
+    const normalizedBrand = selectedBrand
+      ? selectedBrand.trim().toLowerCase()
+      : "";
+
+    const filtered = list.filter((l) => {
+      const matchesQuery = normalizedQuery
+        ? l.product.name.toLowerCase().includes(normalizedQuery)
+        : true;
+      const matchesBrand = normalizedBrand
+        ? l.product.brand.toLowerCase().includes(normalizedBrand)
+        : true;
+      return matchesQuery && matchesBrand;
+    });
 
     // sort low -> high (nulls at end)
     filtered.sort((a, b) => {
@@ -95,7 +122,7 @@ export function ProductList() {
     });
 
     return filtered;
-  }, [data, searchQuery]);
+  }, [data, searchQuery, selectedBrand]);
 
   if (isLoading) {
     return (
@@ -124,6 +151,52 @@ export function ProductList() {
           <Ionicons name="search" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
+
+      {brands.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipsScroll}
+          contentContainerStyle={styles.chipsContainer}
+        >
+          <TouchableOpacity
+            style={[
+              styles.chip,
+              !selectedBrand ? styles.chipActive : undefined,
+            ]}
+            onPress={() => setSelectedBrand(null)}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                !selectedBrand ? styles.chipTextActive : undefined,
+              ]}
+            >
+              All
+            </Text>
+          </TouchableOpacity>
+          {brands.map((brand) => {
+            const isActive = selectedBrand === brand;
+            return (
+              <TouchableOpacity
+                key={brand}
+                style={[styles.chip, isActive ? styles.chipActive : undefined]}
+                onPress={() => setSelectedBrand(isActive ? null : brand)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    isActive ? styles.chipTextActive : undefined,
+                  ]}
+                >
+                  {brand}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      ) : null}
+
       <FlatList
         data={items}
         renderItem={({ item }) => (
@@ -181,5 +254,31 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
+  },
+  chipsScroll: {
+    maxHeight: 44,
+  },
+  chipsContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    gap: 8,
+    alignItems: "center",
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: "#FEE2E2",
+    alignSelf: "flex-start",
+  },
+  chipActive: {
+    backgroundColor: "#FB923C",
+  },
+  chipText: {
+    color: "#F97316",
+    fontWeight: "600",
+  },
+  chipTextActive: {
+    color: "#FFFFFF",
   },
 });

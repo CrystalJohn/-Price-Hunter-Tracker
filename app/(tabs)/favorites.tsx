@@ -25,7 +25,7 @@ export default function FavoritesScreen() {
   // Show sign-in prompt if not authenticated
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.notAuthContainer}>
           <View style={styles.notAuthIconContainer}>
             <Ionicons name="heart-dislike-outline" size={120} color="#D1D5DB" />
@@ -90,7 +90,7 @@ export default function FavoritesScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text style={styles.loadingText}>Loading favorites...</Text>
@@ -101,7 +101,7 @@ export default function FavoritesScreen() {
 
   if (!data || data.length === 0) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.centerContainer}>
           <View style={styles.emptyIconContainer}>
             <Ionicons name="heart-dislike-outline" size={64} color="#9CA3AF" />
@@ -117,7 +117,7 @@ export default function FavoritesScreen() {
 
   if (filteredFavorites.length === 0) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.searchRow}>
           <View style={styles.searchInputContainer}>
             <TextInput
@@ -146,7 +146,7 @@ export default function FavoritesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.searchRow}>
         <View style={styles.searchInputContainer}>
           <TextInput

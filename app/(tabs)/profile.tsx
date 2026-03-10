@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import { resetAuth } from "../../src/lib/authDebug";
 
 export default function ProfileScreen() {
   const { signOut, user, isAuthenticated, loading } = useAuth();
@@ -19,7 +18,7 @@ export default function ProfileScreen() {
   // Show sign-in prompt if not authenticated
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.notAuthContainer}>
           <View style={styles.notAuthIconContainer}>
             <Ionicons name="person-circle-outline" size={120} color="#D1D5DB" />
@@ -87,52 +86,8 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleDebugReset = async (): Promise<void> => {
-    // For web, use window.confirm
-    if (Platform.OS === "web") {
-      const confirmed = window.confirm(
-        "🔧 Debug: Reset Auth\n\nThis will:\n• Sign you out\n• Clear all auth storage\n• Reset session\n\nUseful for fixing 400 errors.",
-      );
-
-      if (confirmed) {
-        try {
-          await resetAuth();
-          window.alert("✅ Success - Auth reset complete.");
-        } catch (error) {
-          window.alert(`❌ Error - Failed to reset: ${error}`);
-        }
-      }
-      return;
-    }
-
-    // For native platforms, use Alert.alert
-    Alert.alert(
-      "🔧 Debug: Reset Auth",
-      "This will:\n• Sign you out\n• Clear all auth storage\n• Reset session\n\nUseful for fixing 400 errors.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Reset",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await resetAuth();
-              Alert.alert("✅ Success", "Auth reset complete.");
-              // No need to redirect - the screen will show sign-in prompt automatically
-            } catch (error) {
-              Alert.alert("❌ Error", `Failed to reset: ${error}`);
-            }
-          },
-        },
-      ],
-    );
-  };
-
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
@@ -186,22 +141,6 @@ export default function ProfileScreen() {
             <Text style={styles.menuText}>Help & Support</Text>
             <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
           </TouchableOpacity>
-
-          {/* Debug Menu Item - Only for development */}
-          {__DEV__ && (
-            <TouchableOpacity
-              style={[styles.menuItem, styles.debugMenuItem]}
-              onPress={handleDebugReset}
-            >
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="bug-outline" size={24} color="#EF4444" />
-              </View>
-              <Text style={[styles.menuText, styles.debugText]}>
-                Debug: Reset Auth
-              </Text>
-              <Ionicons name="warning-outline" size={20} color="#EF4444" />
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* Sign Out Button */}
@@ -324,14 +263,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#9CA3AF",
     marginTop: 8,
-  },
-  debugMenuItem: {
-    backgroundColor: "#FEF2F2",
-    borderBottomColor: "#FCA5A5",
-  },
-  debugText: {
-    color: "#EF4444",
-    fontWeight: "600",
   },
   notAuthContainer: {
     flex: 1,
