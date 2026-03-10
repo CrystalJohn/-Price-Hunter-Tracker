@@ -15,15 +15,6 @@ import {
 } from "react-native";
 import { useAuth } from "../../src/context/AuthContext";
 
-// Helper function for alerts that work on both web and native
-const showAlert = (title: string, message: string) => {
-  if (Platform.OS === "web") {
-    window.alert(`${title}\n\n${message}`);
-  } else {
-    Alert.alert(title, message);
-  }
-};
-
 export default function SignUpScreen() {
   const { signUp, loading } = useAuth();
   const [email, setEmail] = useState("");

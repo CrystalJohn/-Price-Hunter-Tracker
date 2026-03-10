@@ -11,24 +11,13 @@ import {
 } from "react-native";
 import { useAuth } from "../../src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
-import { clearAuthStorage, resetAuth } from "../../src/lib/authDebug";
+import { resetAuth } from "../../src/lib/authDebug";
 
 export default function ProfileScreen() {
   const { signOut, user, isAuthenticated, loading } = useAuth();
 
-  // Debug logging
-  console.log(
-    "👤 ProfileScreen render - isAuthenticated:",
-    isAuthenticated,
-    "user:",
-    user?.email,
-    "loading:",
-    loading,
-  );
-
   // Show sign-in prompt if not authenticated
   if (!isAuthenticated) {
-    console.log("👤 Not authenticated, showing sign-in prompt");
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notAuthContainer}>
@@ -62,24 +51,17 @@ export default function ProfileScreen() {
   }
 
   const handleSignOut = async (): Promise<void> => {
-    console.log("🔴 handleSignOut called!");
-
     // For web, Alert.alert doesn't work well, so use window.confirm
     if (Platform.OS === "web") {
       const confirmed = window.confirm("Are you sure you want to sign out?");
-      console.log("🌐 Web confirm result:", confirmed);
 
       if (confirmed) {
         try {
-          console.log("👤 User confirmed sign out (web)");
           await signOut();
-          console.log("👤 Sign out completed in Profile");
         } catch (error) {
-          console.error("👤 Error during sign out:", error);
+          console.error("Error during sign out:", error);
           window.alert("Failed to sign out. Please try again.");
         }
-      } else {
-        console.log("❌ Sign out cancelled (web)");
       }
       return;
     }
@@ -89,20 +71,15 @@ export default function ProfileScreen() {
       {
         text: "Cancel",
         style: "cancel",
-        onPress: () => console.log("❌ Sign out cancelled"),
       },
       {
         text: "Sign Out",
         style: "destructive",
         onPress: async () => {
           try {
-            console.log("👤 User confirmed sign out (native)");
             await signOut();
-            console.log(
-              "👤 Sign out completed in Profile, state should update now",
-            );
           } catch (error) {
-            console.error("👤 Error during sign out:", error);
+            console.error("Error during sign out:", error);
             Alert.alert("Error", "Failed to sign out. Please try again.");
           }
         },
@@ -230,10 +207,7 @@ export default function ProfileScreen() {
         {/* Sign Out Button */}
         <TouchableOpacity
           style={styles.signOutButton}
-          onPress={() => {
-            console.log("🔴 Sign Out button pressed!");
-            handleSignOut();
-          }}
+          onPress={handleSignOut}
           activeOpacity={0.8}
         >
           <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />

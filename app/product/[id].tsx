@@ -122,13 +122,13 @@ export default function ProductDetailScreen() {
           .eq("user_id", userId)
           .eq("product_id", id)
           .limit(1)
-          .single();
+          .maybeSingle();
         if (error) {
-          console.error("Supabase(favorites) error:", error);
+          console.warn("Supabase(favorites) check:", error.message);
           setIsFav(false);
           return;
         }
-        setIsFav(!!data);
+        setIsFav(data !== null);
       } catch (e) {
         console.error(e);
         setIsFav(false);
