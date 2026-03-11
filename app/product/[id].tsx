@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,15 +10,19 @@ import {
   View,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../src/lib/supabase";
 import type {
   Product,
   ProductPrice,
   PriceHistory,
+  DealAnalysis,
 } from "../../src/types/domain";
 import { PriceTable } from "../../src/components/product/PriceTable";
 import { PriceHistoryChart } from "../../src/components/product/PriceHistoryChart";
+import { DealAnalysisModal } from "../../src/components/product/DealAnalysisModal";
+import { analyzeDealWithAI } from "../../src/lib/geminiService";
 import { addFavorite, removeFavorite } from "../../src/lib/favorites";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -65,7 +68,7 @@ export default function ProductDetailScreen() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_prices")
-        .select("*")
+        .select("*, stores(name)")
         .eq("product_id", id);
       if (error) {
         console.error("Supabase(product_prices) error:", error);
@@ -75,6 +78,7 @@ export default function ProductDetailScreen() {
         id: r.id,
         productId: r.product_id ?? r.productId,
         storeId: r.store_id ?? r.storeId,
+        storeName: r.stores?.name ?? r.store_name ?? r.storeName,
         price: Number(r.price),
         updatedAt: r.updated_at ?? r.updatedAt,
       }));
@@ -111,6 +115,12 @@ export default function ProductDetailScreen() {
     [prices],
   );
 
+  // AI Deal Analysis state
+  const [aiResult, setAiResult] = useState<DealAnalysis | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+
   const [isFav, setIsFav] = useState(false);
   useEffect(() => {
     if (!userId || !id) return;
@@ -122,13 +132,13 @@ export default function ProductDetailScreen() {
           .eq("user_id", userId)
           .eq("product_id", id)
           .limit(1)
-          .single();
+          .maybeSingle();
         if (error) {
-          console.error("Supabase(favorites) error:", error);
+          console.warn("Supabase(favorites) check:", error.message);
           setIsFav(false);
           return;
         }
-        setIsFav(!!data);
+        setIsFav(data !== null);
       } catch (e) {
         console.error(e);
         setIsFav(false);
@@ -156,43 +166,51 @@ export default function ProductDetailScreen() {
     }
   }, [isFav, userId, id, queryClient]);
 
-  const analyzeDeal = useCallback(() => {
-    // local heuristic: compare lowest price to 30-day average
-    if (!prices || prices.length === 0 || !history) {
+  const analyzeDeal = useCallback(async () => {
+    if (!prices || prices.length === 0 || !history || !product) {
       Alert.alert("Not enough data to analyze");
       return;
     }
 
-    const avg30 =
-      history.reduce((s, h) => s + h.price, 0) / Math.max(1, history.length);
-    const diff = lowest ? ((avg30 - lowest) / avg30) * 100 : 0;
-    const verdict =
-      diff > 10
-        ? "Great deal — price is significantly below 30-day average."
-        : diff > 2
-          ? "Decent deal."
-          : "Price is close to the usual range.";
-    Alert.alert(
-      "Deal analysis",
-      `${verdict}\nLowest: €${lowest?.toFixed(2)} • 30-day avg: €${avg30.toFixed(2)} (${diff.toFixed(1)}% difference)`,
-    );
-  }, [prices, history, lowest]);
+    // Reset previous state and show modal
+    setAiResult(null);
+    setAiError(null);
+    setAiLoading(true);
+    setAiModalVisible(true);
+
+    try {
+      const avg30 =
+        history.reduce((s, h) => s + h.price, 0) / Math.max(1, history.length);
+      const discountPercent = lowest ? ((avg30 - lowest) / avg30) * 100 : 0;
+
+      // Determine price trend from history
+      let priceTrend: "up" | "down" | "stable" = "stable";
+      if (history.length >= 2) {
+        const first = history[0].price;
+        const last = history[history.length - 1].price;
+        const change = ((last - first) / first) * 100;
+        if (change > 3) priceTrend = "up";
+        else if (change < -3) priceTrend = "down";
+      }
+
+      const result = await analyzeDealWithAI({
+        productName: product.name,
+        currentPrice: lowest ?? avg30,
+        avgPrice: avg30,
+        discountPercent,
+        priceTrend,
+      });
+
+      setAiResult(result);
+    } catch (err: any) {
+      setAiError(err.message ?? "Failed to analyze deal.");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [prices, history, lowest, product]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header with Back Button */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Details</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
@@ -227,7 +245,17 @@ export default function ProductDetailScreen() {
 
             {/* Product Info Section */}
             <View style={styles.infoSection}>
-              {/* Brand Badge */}
+              {/* Back to Home */}
+            <TouchableOpacity
+              style={styles.homeButton}
+              onPress={() => router.replace("/(tabs)")}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="home-outline" size={18} color="#3B82F6" />
+              <Text style={styles.homeButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+
+                        {/* Brand Badge */}
               <View style={styles.brandBadge}>
                 <Ionicons name="business-outline" size={14} color="#3B82F6" />
                 <Text style={styles.brandText}>{product.brand}</Text>
@@ -318,6 +346,15 @@ export default function ProductDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* AI Deal Analysis Modal */}
+      <DealAnalysisModal
+        visible={aiModalVisible}
+        loading={aiLoading}
+        result={aiResult}
+        error={aiError}
+        onClose={() => setAiModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -326,32 +363,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F9FAFB",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  headerSpacer: {
-    width: 40,
   },
   container: {
     paddingBottom: 24,
@@ -398,6 +409,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     padding: 20,
     gap: 16,
+  },
+  homeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#EFF6FF",
+  },
+  homeButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3B82F6",
   },
   brandBadge: {
     flexDirection: "row",

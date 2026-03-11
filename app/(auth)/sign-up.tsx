@@ -1,7 +1,6 @@
-import { Link, router } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,19 +12,12 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/context/AuthContext";
-
-// Helper function for alerts that work on both web and native
-const showAlert = (title: string, message: string) => {
-  if (Platform.OS === "web") {
-    window.alert(`${title}\n\n${message}`);
-  } else {
-    Alert.alert(title, message);
-  }
-};
 
 export default function SignUpScreen() {
   const { signUp, loading } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

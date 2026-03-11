@@ -1,23 +1,23 @@
-import { Link, router } from 'expo-router';
-import React, { useState } from 'react';
-import { 
-  SafeAreaView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  TextInput, 
-  ActivityIndicator, 
+import { Link, useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  TextInput,
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
-} from 'react-native';
-import { useAuth } from '../../src/context/AuthContext';
+  ScrollView,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../src/context/AuthContext";
 
 // Helper function for alerts that work on both web and native
 const showAlert = (title: string, message: string) => {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     window.alert(`${title}\n\n${message}`);
   } else {
     Alert.alert(title, message);
@@ -26,30 +26,31 @@ const showAlert = (title: string, message: string) => {
 
 export default function SignInScreen() {
   const { signIn, loading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      showAlert('Validation', 'Please provide email and password');
+      showAlert("Validation", "Please provide email and password");
       return;
     }
     try {
       await signIn(email.trim(), password);
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch (err: any) {
-      showAlert('Sign in failed', err.message ?? 'Unknown error');
+      showAlert("Sign in failed", err.message ?? "Unknown error");
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
         >
@@ -60,7 +61,9 @@ export default function SignInScreen() {
                 <Text style={styles.icon}>🔐</Text>
               </View>
               <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>Sign in to continue tracking prices</Text>
+              <Text style={styles.subtitle}>
+                Sign in to continue tracking prices
+              </Text>
             </View>
 
             {/* Form Section */}
@@ -75,11 +78,11 @@ export default function SignInScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  onFocus={() => setFocusedField('email')}
+                  onFocus={() => setFocusedField("email")}
                   onBlur={() => setFocusedField(null)}
                   style={[
                     styles.input,
-                    focusedField === 'email' && styles.inputFocused
+                    focusedField === "email" && styles.inputFocused,
                   ]}
                 />
               </View>
@@ -92,18 +95,18 @@ export default function SignInScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  onFocus={() => setFocusedField('password')}
+                  onFocus={() => setFocusedField("password")}
                   onBlur={() => setFocusedField(null)}
                   style={[
                     styles.input,
-                    focusedField === 'password' && styles.inputFocused
+                    focusedField === "password" && styles.inputFocused,
                   ]}
                 />
               </View>
 
-              <TouchableOpacity 
-                style={[styles.button, loading && styles.buttonDisabled]} 
-                onPress={handleSignIn} 
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleSignIn}
                 disabled={loading}
                 activeOpacity={0.8}
               >
@@ -124,7 +127,7 @@ export default function SignInScreen() {
               {/* Sign Up Link */}
               <View style={styles.signupContainer}>
                 <Text style={styles.signupText}>Don't have an account? </Text>
-                <Link href='/(auth)/sign-up' asChild>
+                <Link href="/(auth)/sign-up" asChild>
                   <TouchableOpacity>
                     <Text style={styles.link}>Sign Up</Text>
                   </TouchableOpacity>
@@ -139,47 +142,47 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
-    backgroundColor: '#F9FAFB' 
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
   },
-  keyboardView: { 
-    flex: 1 
+  keyboardView: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
   },
-  container: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    padding: 24 
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#EEF2FF",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   icon: {
     fontSize: 40,
   },
-  title: { 
-    fontSize: 32, 
-    fontWeight: '700',
-    color: '#111827',
+  title: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "#6B7280",
+    textAlign: "center",
   },
   formContainer: {
     gap: 16,
@@ -189,33 +192,33 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginLeft: 4,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#111827',
+    color: "#111827",
   },
   inputFocused: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#FFFFFF',
+    borderColor: "#3B82F6",
+    backgroundColor: "#FFFFFF",
   },
   button: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 8,
-    shadowColor: '#3B82F6',
+    shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -224,39 +227,39 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonText: { 
-    color: '#FFFFFF', 
-    fontWeight: '700',
+  buttonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
     fontSize: 16,
   },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#9CA3AF',
+    color: "#9CA3AF",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   signupText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: "#6B7280",
   },
-  link: { 
-    color: '#3B82F6', 
-    fontWeight: '700',
+  link: {
+    color: "#3B82F6",
+    fontWeight: "700",
     fontSize: 14,
   },
 });

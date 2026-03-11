@@ -33,3 +33,15 @@ export type Favorite = {
   productId: string;
   createdAt: string;
 };
+
+export type DealAnalysis = {
+  dealScore: number;
+  verdict: "Good" | "Average" | "Overpriced";
+  explanation: string;
+};
+
+export type UserProfile = {
+  id: string;
+  avatar_url: string | null;
+  updated_at: string;
+};

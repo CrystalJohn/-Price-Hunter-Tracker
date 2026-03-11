@@ -24,7 +24,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: PropsWithChildren) {
+export function AuthProvider({ children }: PropsWithChildren<{}>) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -135,7 +135,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(() => {
     const isAuth = !!user;
-    console.log("🔄 AuthContext value updated - user:", user?.email, "isAuthenticated:", isAuth, "loading:", loading);
+    console.log(
+      "🔄 AuthContext value updated - user:",
+      user?.email,
+      "isAuthenticated:",
+      isAuth,
+      "loading:",
+      loading,
+    );
     return {
       user,
       isAuthenticated: isAuth,
