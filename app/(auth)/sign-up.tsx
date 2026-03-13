@@ -23,6 +23,9 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isButtonDisabled = loading || isSubmitting || !email || !password || !confirmPassword;
 
   const handleSignUp = async () => {
     setErrorMessage(null); // Clear previous errors
@@ -42,20 +45,15 @@ export default function SignUpScreen() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await signUp(email.trim(), password);
-      // Giữ nguyên Alert cho báo thành công để bắt người dùng bấm OK chuyển trang
-      Alert.alert(
-        "Thành công!",
-        "Tài khoản đã được tạo. Vui lòng kiểm tra email để xác thực.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(auth)/sign-in"),
-          },
-        ],
-      );
+      // Khi đã tắt Confirm Email ở Supabase, signUp sẽ tự động trả về session và login luôn.
+      // Dẫn user vào thẳng màn hình chính trị app (tabs).
+      setIsSubmitting(false);
+      router.replace("/(tabs)");
     } catch (err: any) {
+      setIsSubmitting(false);
       const msg = err.message || "Unknown error";
       if (msg.includes("User already registered")) {
         setErrorMessage("Email này đã được đăng ký, vui lòng Đăng nhập.");
@@ -149,12 +147,12 @@ export default function SignUpScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
+                style={[styles.button, isButtonDisabled && styles.buttonDisabled]}
                 onPress={handleSignUp}
-                disabled={loading}
+                disabled={isButtonDisabled}
                 activeOpacity={0.8}
               >
-                {loading ? (
+                {isSubmitting || loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.buttonText}>Create Account</Text>

@@ -31,6 +31,9 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isButtonDisabled = loading || isSubmitting || !email || !password;
 
   const handleSignIn = async () => {
     setErrorMessage(null); // Clear previous errors
@@ -39,6 +42,7 @@ export default function SignInScreen() {
       setErrorMessage("Vui lòng nhập Email và Mật khẩu.");
       return;
     }
+    setIsSubmitting(true);
     try {
       await signIn(email.trim(), password);
       router.replace("/(tabs)");
@@ -49,6 +53,8 @@ export default function SignInScreen() {
       } else {
         setErrorMessage(`Lỗi đăng nhập: ${msg}`);
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -119,12 +125,12 @@ export default function SignInScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
+                style={[styles.button, isButtonDisabled && styles.buttonDisabled]}
                 onPress={handleSignIn}
-                disabled={loading}
+                disabled={isButtonDisabled}
                 activeOpacity={0.8}
               >
-                {loading ? (
+                {isSubmitting || loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.buttonText}>Sign In</Text>

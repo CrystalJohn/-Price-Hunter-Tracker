@@ -34,11 +34,13 @@ export default function FavoritesScreen() {
     Error,
     { products: Product[]; prices: ProductPrice[] }
   >({
-    queryKey: ["favorites"],
+    queryKey: ["favorites", user?.id],
     queryFn: async () => {
+      if (!user?.id) return { products: [], prices: [] };
       const { data: favs, error: fErr } = await supabase
         .from("favorites")
         .select("product_id")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (fErr) {
         console.error("Supabase(favorites) error:", fErr);
