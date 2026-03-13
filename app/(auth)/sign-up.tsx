@@ -21,29 +21,33 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleSignUp = async () => {
+    setErrorMessage(null); // Clear previous errors
+
     if (!email || !password || !confirmPassword) {
-      Alert.alert("Validation", "Please fill in all fields");
+      setErrorMessage("Vui lòng điền đầy đủ thông tin.");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Validation", "Passwords do not match");
+      setErrorMessage("Mật khẩu xác nhận không khớp.");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Validation", "Password must be at least 6 characters");
+      setErrorMessage("Mật khẩu phải dài ít nhất 6 ký tự.");
       return;
     }
 
     try {
       await signUp(email.trim(), password);
+      // Giữ nguyên Alert cho báo thành công để bắt người dùng bấm OK chuyển trang
       Alert.alert(
-        "Success!",
-        "Account created successfully. Please check your email to verify your account.",
+        "Thành công!",
+        "Tài khoản đã được tạo. Vui lòng kiểm tra email để xác thực.",
         [
           {
             text: "OK",
@@ -52,7 +56,12 @@ export default function SignUpScreen() {
         ],
       );
     } catch (err: any) {
-      Alert.alert("Sign up failed", err.message ?? "Unknown error");
+      const msg = err.message || "Unknown error";
+      if (msg.includes("User already registered")) {
+        setErrorMessage("Email này đã được đăng ký, vui lòng Đăng nhập.");
+      } else {
+        setErrorMessage(`Lỗi đăng ký: ${msg}`);
+      }
     }
   };
 
@@ -80,6 +89,12 @@ export default function SignUpScreen() {
 
             {/* Form Section */}
             <View style={styles.formContainer}>
+              {errorMessage && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+                </View>
+              )}
+
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email Address</Text>
                 <TextInput
@@ -218,6 +233,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#6B7280",
     textAlign: "center",
+  },
+  errorContainer: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: "#DC2626",
+    fontSize: 14,
+    fontWeight: "500",
   },
   formContainer: {
     gap: 16,

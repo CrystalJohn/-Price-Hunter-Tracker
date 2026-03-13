@@ -72,7 +72,15 @@ export default function FavoritesScreen() {
         updatedAt: r.updated_at ?? r.updatedAt,
       }));
 
-      return { products: (res.data ?? []) as Product[], prices: mappedPrices };
+      const mappedProducts = (res.data ?? []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand,
+        imageUrl: p.image_url ?? p.imageUrl,
+        createdAt: p.created_at ?? p.createdAt,
+      }));
+
+      return { products: mappedProducts as Product[], prices: mappedPrices };
     },
     enabled: !!isAuthenticated,
   });

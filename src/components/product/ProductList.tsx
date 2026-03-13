@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import {
-  FlatList,
   StyleSheet,
   Text,
   View,
@@ -8,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import { ProductCard } from "./ProductCard";
@@ -26,7 +26,7 @@ async function fetchProducts() {
 
   const { data: prices, error: prErr } = await supabase
     .from("product_prices")
-    .select("*");
+    .select("*, stores(name)");
   if (prErr) {
     console.error("Supabase(product_prices) error:", prErr);
     throw new Error(prErr.message ?? JSON.stringify(prErr));
@@ -45,6 +45,7 @@ async function fetchProducts() {
     id: r.id,
     productId: r.product_id ?? r.productId,
     storeId: r.store_id ?? r.storeId,
+    storeName: r.stores?.name ?? r.store_name ?? r.storeName,
     price: Number(r.price),
     updatedAt: r.updated_at ?? r.updatedAt,
   }));
@@ -86,17 +87,30 @@ export function ProductList() {
     if (!data) return [];
     const { products, prices } = data;
 
-    // compute lowest price per product
-    const priceMap = new Map<string, number>();
+    // compute lowest and highest price per product
+    const priceMap = new Map<string, { min: number; max: number; storeName?: string }>();
     prices.forEach((p) => {
       const prev = priceMap.get(p.productId);
-      if (prev == null || p.price < prev) priceMap.set(p.productId, p.price);
+      if (!prev) {
+        priceMap.set(p.productId, { min: p.price, max: p.price, storeName: p.storeName });
+      } else {
+        if (p.price < prev.min) {
+          prev.min = p.price;
+          prev.storeName = p.storeName;
+        }
+        prev.max = Math.max(prev.max, p.price);
+      }
     });
 
-    const list = products.map((prod) => ({
-      product: prod,
-      lowestPrice: priceMap.get(prod.id) ?? null,
-    }));
+    const list = products.map((prod) => {
+      const pData = priceMap.get(prod.id);
+      return {
+        product: prod,
+        lowestPrice: pData?.min ?? null,
+        highestPrice: pData?.max ?? null,
+        bestStoreName: pData?.storeName ?? undefined,
+      };
+    });
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const normalizedBrand = selectedBrand
@@ -197,19 +211,25 @@ export function ProductList() {
         </ScrollView>
       ) : null}
 
-      <FlatList
-        data={items}
-        renderItem={({ item }) => (
-          <ProductCard
-            product={item.product}
-            lowestPrice={item.lowestPrice ?? undefined}
-            onPress={() => router.push(`/product/${item.product.id}`)}
-          />
-        )}
-        keyExtractor={(item) => item.product.id}
-        contentContainerStyle={{ padding: 12 }}
-        showsVerticalScrollIndicator={false}
-      />
+      <View style={styles.listWrapper}>
+        <FlashList
+          data={items}
+          renderItem={({ item }) => (
+            <ProductCard
+              product={item.product}
+              lowestPrice={item.lowestPrice ?? undefined}
+              originalPrice={item.highestPrice ?? undefined}
+              bestStoreName={item.bestStoreName}
+              onPress={() => router.push(`/product/${item.product.id}`)}
+            />
+          )}
+          // @ts-ignore - Valid prop, but types are missing in this environment
+          estimatedItemSize={110}
+          keyExtractor={(item) => item.product.id}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, paddingTop: 8 }}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
     </View>
   );
 }
@@ -217,11 +237,13 @@ export function ProductList() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FAFC" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  listWrapper: { flex: 1 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    margin: 12,
+    gap: 12,
+    marginHorizontal: 16,
+    marginVertical: 12,
   },
   searchInputContainer: {
     flex: 1,
@@ -256,27 +278,36 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   chipsScroll: {
-    maxHeight: 44,
+    maxHeight: 50,
   },
   chipsContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 6,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 10,
     alignItems: "center",
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     alignSelf: "flex-start",
   },
   chipActive: {
-    backgroundColor: "#FB923C",
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   chipText: {
-    color: "#F97316",
+    color: "#64748B",
     fontWeight: "600",
+    fontSize: 14,
   },
   chipTextActive: {
     color: "#FFFFFF",

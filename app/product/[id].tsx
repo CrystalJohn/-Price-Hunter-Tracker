@@ -115,6 +115,41 @@ export default function ProductDetailScreen() {
     [prices],
   );
 
+  const highest = useMemo(
+    () =>
+      prices && prices.length ? Math.max(...prices.map((p) => p.price)) : null,
+    [prices],
+  );
+
+  let discountPercent = 0;
+  if (lowest && highest && highest > lowest) {
+    discountPercent = Math.round(((highest - lowest) / highest) * 100);
+  }
+
+  const categoryInfo = useMemo(() => {
+    if (!product) return { label: "Accessories", icon: "pricetag-outline" as const };
+    const n = product.name.toLowerCase();
+    if (n.includes("bag") || n.includes("backpack") || n.includes("duffel") || n.includes("sack")) {
+      return { label: "Bags & Backpacks", icon: "briefcase-outline" as const };
+    }
+    if (n.includes("bottle") || n.includes("flask") || n.includes("hydration")) {
+      return { label: "Hydration", icon: "water-outline" as const };
+    }
+    if (n.includes("beanie") || n.includes("cap") || n.includes("hat") || n.includes("visor") || n.includes("headband")) {
+      return { label: "Headwear", icon: "shirt-outline" as const };
+    }
+    if (n.includes("kneepad") || n.includes("gaiters") || n.includes("gloves") || n.includes("sweatband")) {
+      return { label: "Protective Gear", icon: "shield-checkmark-outline" as const };
+    }
+    if (n.includes("socks")) {
+      return { label: "Footwear Accs", icon: "walk-outline" as const };
+    }
+    if (n.includes("belt") || n.includes("armband") || n.includes("vest") || n.includes("waistpack")) {
+      return { label: "Wearables & Belts", icon: "watch-outline" as const };
+    }
+    return { label: "Accessories", icon: "pricetag-outline" as const };
+  }, [product]);
+
   // AI Deal Analysis state
   const [aiResult, setAiResult] = useState<DealAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -195,10 +230,16 @@ export default function ProductDetailScreen() {
 
       const result = await analyzeDealWithAI({
         productName: product.name,
-        currentPrice: lowest ?? avg30,
         avgPrice: avg30,
-        discountPercent,
         priceTrend,
+        storeOffers: prices
+          ? prices.map((p) => ({
+              storeName: p.storeName || "Unknown Store",
+              currentPrice: p.price,
+              inStock: true,
+              trustRating: Math.floor(Math.random() * 3) + 7, // Random 7-9 for demo
+            }))
+          : [],
       });
 
       setAiResult(result);
@@ -255,10 +296,19 @@ export default function ProductDetailScreen() {
               <Text style={styles.homeButtonText}>Back to Home</Text>
             </TouchableOpacity>
 
-                        {/* Brand Badge */}
-              <View style={styles.brandBadge}>
-                <Ionicons name="business-outline" size={14} color="#3B82F6" />
-                <Text style={styles.brandText}>{product.brand}</Text>
+              {/* Tags Row */}
+              <View style={styles.tagsRow}>
+                {/* Brand Badge */}
+                <View style={[styles.pill, styles.brandPill]}>
+                  <Ionicons name="business-outline" size={14} color="#3B82F6" />
+                  <Text style={styles.brandText}>{product.brand}</Text>
+                </View>
+                
+                {/* Category Badge */}
+                <View style={[styles.pill, styles.categoryPill]}>
+                  <Ionicons name={categoryInfo.icon} size={14} color="#8B5CF6" />
+                  <Text style={styles.categoryText}>{categoryInfo.label}</Text>
+                </View>
               </View>
 
               {/* Product Name */}
@@ -268,20 +318,27 @@ export default function ProductDetailScreen() {
               <View style={styles.priceHighlight}>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Best Price</Text>
-                  {lowest && (
+                  {discountPercent > 0 && (
                     <View style={styles.savingsBadge}>
                       <Ionicons
                         name="trending-down"
                         size={14}
-                        color="#10B981"
+                        color="#EF4444"
                       />
-                      <Text style={styles.savingsText}>Best Deal</Text>
+                      <Text style={styles.savingsText}>Save {discountPercent}%</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.priceValue}>
-                  {lowest == null ? "—" : `€${lowest.toFixed(2)}`}
-                </Text>
+                <View style={styles.priceValueRow}>
+                  <Text style={styles.priceValue}>
+                    {lowest == null ? "—" : `€${lowest.toFixed(2)}`}
+                  </Text>
+                  {discountPercent > 0 && highest && (
+                    <Text style={styles.originalPrice}>
+                      €{highest.toFixed(2)}
+                    </Text>
+                  )}
+                </View>
                 {prices && prices.length > 1 && (
                   <Text style={styles.priceSubtext}>
                     Compare prices from {prices.length} stores
@@ -296,23 +353,8 @@ export default function ProductDetailScreen() {
                   onPress={analyzeDeal}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="analytics-outline" size={20} color="#fff" />
-                  <Text style={styles.primaryButtonText}>Analyze Deal</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.secondaryButton]}
-                  onPress={toggleFollow}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name={isFav ? "heart" : "heart-outline"}
-                    size={20}
-                    color={isFav ? "#EF4444" : "#3B82F6"}
-                  />
-                  <Text style={styles.secondaryButtonText}>
-                    {isFav ? "Following" : "Follow"}
-                  </Text>
+                  <Ionicons name="sparkles" size={20} color="#fff" />
+                  <Text style={styles.primaryButtonText}>AI Deal Analysis</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -425,20 +467,39 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#3B82F6",
   },
-  brandBadge: {
+  tagsRow: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: "#EFF6FF",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     gap: 6,
   },
+  brandPill: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+  },
   brandText: {
     fontSize: 13,
     fontWeight: "600",
     color: "#3B82F6",
+  },
+  categoryPill: {
+    backgroundColor: "#F5F3FF",
+    borderWidth: 1,
+    borderColor: "#EDE9FE",
+  },
+  categoryText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#8B5CF6",
   },
   productName: {
     fontSize: 26,
@@ -469,16 +530,24 @@ const styles = StyleSheet.create({
   savingsBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FEE2E2",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FECACA",
     gap: 4,
   },
   savingsText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#10B981",
+    fontWeight: "800",
+    color: "#EF4444",
+    textTransform: "uppercase",
+  },
+  priceValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
   },
   priceValue: {
     fontSize: 42,
@@ -486,45 +555,41 @@ const styles = StyleSheet.create({
     color: "#059669",
     lineHeight: 50,
   },
+  originalPrice: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textDecorationLine: "line-through",
+  },
   priceSubtext: {
     fontSize: 13,
     color: "#6B7280",
   },
   actionButtons: {
-    flexDirection: "row",
-    gap: 12,
+    marginTop: 8,
   },
   actionButton: {
-    flex: 1,
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 10,
   },
   primaryButton: {
-    backgroundColor: "#3B82F6",
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: "#6366F1", // Indigo for AI vibes
+    shadowColor: "#6366F1",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
   primaryButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
-  },
-  secondaryButton: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#3B82F6",
+    letterSpacing: 0.5,
   },
   section: {
     backgroundColor: "#FFFFFF",

@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
-// Removed expo-file-system import (not used after switching to fetch/blob upload)
+import * as FileSystem from "expo-file-system/legacy";
+import { decode } from "base64-arraybuffer";
 import type { UserProfile } from "../types/domain";
 
 export async function getProfile(userId: string): Promise<UserProfile | null> {
@@ -28,14 +29,15 @@ export async function uploadAvatar(
     const fileName = `${userId}-${Date.now()}.${ext}`;
     const filePath = `avatars/${fileName}`;
 
-    const response = await fetch(imageUri);
-    if (!response.ok)
-      throw new Error(`Failed to fetch image: ${response.status}`);
-    const blob = await response.blob();
+    // Fix for Network request failed: Read local file to B64 string, then decode to raw ArrayBuffer
+    const base64Data = await FileSystem.readAsStringAsync(imageUri, {
+      encoding: "base64",
+    });
+    const buffer = decode(base64Data);
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, blob as any, {
+      .upload(filePath, buffer, {
         contentType: `image/${ext}`,
         upsert: true,
       });

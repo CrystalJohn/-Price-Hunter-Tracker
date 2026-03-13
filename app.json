@@ -3,8 +3,7 @@
     "scheme": "price-hunter",
     "extra": {
       "EXPO_PUBLIC_SUPABASE_URL": "https://lgvlkfmbielktvbppotf.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_xIIjPN01jmDhnmycqYz99Q_FxBDIofL",
-      "EXPO_PUBLIC_OPENAI_API_KEY": "AIzaSyCeNkm7vYIF4HEk8gb3vG3Vnvly4k9MpT0"
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_xIIjPN01jmDhnmycqYz99Q_FxBDIofL"
     },
     "plugins": ["expo-font"]
   }

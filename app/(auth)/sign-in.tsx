@@ -29,18 +29,26 @@ export default function SignInScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleSignIn = async () => {
+    setErrorMessage(null); // Clear previous errors
+    
     if (!email || !password) {
-      showAlert("Validation", "Please provide email and password");
+      setErrorMessage("Vui lòng nhập Email và Mật khẩu.");
       return;
     }
     try {
       await signIn(email.trim(), password);
       router.replace("/(tabs)");
     } catch (err: any) {
-      showAlert("Sign in failed", err.message ?? "Unknown error");
+      const msg = err.message || "Unknown error";
+      if (msg.includes("Invalid login credentials")) {
+        setErrorMessage("Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.");
+      } else {
+        setErrorMessage(`Lỗi đăng nhập: ${msg}`);
+      }
     }
   };
 
@@ -68,6 +76,12 @@ export default function SignInScreen() {
 
             {/* Form Section */}
             <View style={styles.formContainer}>
+              {errorMessage && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+                </View>
+              )}
+
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email Address</Text>
                 <TextInput
@@ -183,6 +197,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#6B7280",
     textAlign: "center",
+  },
+  errorContainer: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: "#DC2626",
+    fontSize: 14,
+    fontWeight: "500",
   },
   formContainer: {
     gap: 16,

@@ -16,6 +16,7 @@ export type ProductPrice = {
   id: string;
   productId: string;
   storeId: string;
+  storeName?: string;
   price: number;
   updatedAt: string;
 };
@@ -38,6 +39,9 @@ export type DealAnalysis = {
   dealScore: number;
   verdict: "Good" | "Average" | "Overpriced";
   explanation: string;
+  recommendedStore?: string;
+  recommendationReason?: string;
+  storeComparisons?: { store: string; pros: string; cons: string }[];
 };
 
 export type UserProfile = {

@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { DealAnalysis } from "../../types/domain";
@@ -117,7 +118,7 @@ function DealAnalysisModalBase({
           )}
 
           {result && !loading && !error && (
-            <View style={styles.resultContainer}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.resultContainer}>
               {/* Deal Score */}
               <View style={styles.scoreSection}>
                 <Text style={styles.scoreLabel}>Deal Score</Text>
@@ -167,17 +168,53 @@ function DealAnalysisModalBase({
                 </Text>
               </View>
 
+              {/* Recommendation Box */}
+              {result.recommendedStore && (
+                <View style={[styles.explanationBox, { backgroundColor: "#ECFDF5", borderColor: "#10B981", borderWidth: 1 }]}>
+                  <Ionicons name="cart" size={20} color="#059669" style={{ marginTop: 2 }} />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={[styles.explanationText, { fontWeight: "700", color: "#065F46" }]}>
+                      Best Choice: {result.recommendedStore}
+                    </Text>
+                    <Text style={[styles.explanationText, { color: "#065F46" }]}>
+                      {result.recommendationReason}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
               {/* Explanation */}
               <View style={styles.explanationBox}>
                 <Ionicons
                   name="chatbubble-ellipses-outline"
                   size={18}
                   color="#6B7280"
+                  style={{ marginTop: 2 }}
                 />
                 <Text style={styles.explanationText}>
                   {result.explanation}
                 </Text>
               </View>
+
+              {/* Store Comparisons */}
+              {result.storeComparisons && result.storeComparisons.length > 0 && (
+                <View style={styles.comparisonsContainer}>
+                  <Text style={styles.comparisonsTitle}>Store Breakdown</Text>
+                  {result.storeComparisons.map((comp, idx) => (
+                    <View key={idx} style={styles.comparisonItem}>
+                      <Text style={styles.comparisonStore}>{comp.store}</Text>
+                      <View style={styles.prosConsRow}>
+                        <Ionicons name="add-circle-outline" size={14} color="#10B981" />
+                        <Text style={styles.prosText}>{comp.pros}</Text>
+                      </View>
+                      <View style={styles.prosConsRow}>
+                        <Ionicons name="remove-circle-outline" size={14} color="#EF4444" />
+                        <Text style={styles.consText}>{comp.cons}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               {/* Gemini branding */}
               <View style={styles.brandingRow}>
@@ -186,7 +223,7 @@ function DealAnalysisModalBase({
                   Powered by Google Gemini AI
                 </Text>
               </View>
-            </View>
+            </ScrollView>
           )}
         </View>
       </View>
@@ -209,6 +246,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
     minHeight: 320,
+    maxHeight: "85%",
   },
   handleBar: {
     width: 40,
@@ -359,10 +397,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 4,
+    marginTop: 12,
   },
   brandingText: {
     fontSize: 12,
     color: "#9CA3AF",
+  },
+  // Store Comparisons
+  comparisonsContainer: {
+    width: "100%",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+  },
+  comparisonsTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#374151",
+    marginBottom: 4,
+  },
+  comparisonItem: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    padding: 12,
+    gap: 6,
+  },
+  comparisonStore: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  prosConsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+  },
+  prosText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#059669",
+    lineHeight: 18,
+  },
+  consText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#DC2626",
+    lineHeight: 18,
   },
 });
